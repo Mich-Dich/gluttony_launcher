@@ -133,6 +133,10 @@ namespace AT::UI {
 	// @return True if the button is clicked, false otherwise.
 	bool toggle_button(const char* lable, bool& bool_var, const ImVec2& size = { 0, 0 });
 
+	// print a text in a specific font
+	void text(ImFont* font, const char* fmt, ...);
+
+
 	// @brief Draws text using a larger font.
 	// @param [text] The text to be drawn.
 	void big_text(const char* text, bool wrapped = false);

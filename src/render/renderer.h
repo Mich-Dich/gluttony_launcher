@@ -52,7 +52,6 @@ namespace AT::render {
         virtual void execute_pending_commands() = 0;
         virtual void serialize(serializer::option option) = 0;
 
-		// bool								m_render_to_texture = true;	    // TODO: implement later:  TRUE: render to image, then display it in an imgui window    FALSE: render directly into GLFW_window
 		system_state						m_state = system_state::inactive;
         glm::ivec2                          m_window_size{0, 0};
         glm::ivec2                          m_viewport_size{0, 0};

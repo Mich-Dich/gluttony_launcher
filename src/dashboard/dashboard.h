@@ -8,15 +8,7 @@ namespace AT {
 
     class event;
 
-    enum class ui_section {
-        home = 0,
-        library,
-        projects,
-        settings,
-        user
-    };
-    
-    
+
     class dashboard {
     public:
 
@@ -32,7 +24,6 @@ namespace AT {
 
     private:
 
-        void window_main_content();
         void main_menu_bar();
         void settings_panel();
         void news_panel();
@@ -42,7 +33,6 @@ namespace AT {
         void sidebar(const f32 sidebar_width);
 
     	bool 				m_show_settings = false;
-    	ui_section			m_current_section = ui_section::home;
         
 		ref<image>		    m_logo_icon;
 		ref<image>		    m_home_icon;

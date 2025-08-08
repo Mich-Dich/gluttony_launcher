@@ -431,6 +431,20 @@ namespace AT::UI {
 		return result;
 	}
 
+
+	void text(ImFont* font, const char* fmt, ...) {
+
+		ImGui::PushFont(font);
+
+		va_list args;
+		va_start(args, fmt);
+		ImGui::TextV(fmt, args);
+		va_end(args);
+		
+		ImGui::PopFont();
+	}
+
+
 	void big_text(const char* text, bool wrapped) {
 
 		ImGui::PushFont(application::get().get_imgui_config_ref()->get_font("regular_big"));

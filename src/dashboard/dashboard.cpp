@@ -27,6 +27,15 @@ namespace AT {
 	#define FONT_HEADER_DEFAULT         application::get().get_imgui_config_ref()->get_font("header_default")
 	#define FONT_MONOSPACE_DEFAULT      application::get().get_imgui_config_ref()->get_font("monospace_regular")
 
+    enum class ui_section {
+        home = 0,
+        library,
+        projects,
+        settings,
+        user
+    };
+    static ui_section 					s_current_section = ui_section::home;
+    
 
 
     dashboard::dashboard() {
@@ -58,6 +67,8 @@ namespace AT {
 		LOAD_ICON(transfrom_rotation);
 		LOAD_ICON(transfrom_scale);
 #undef	LOAD_ICON
+
+		LOG(Trace, "INIT DASHBOARD")
 
 		// serialize(serializer::option::load_from_file);
 	}
@@ -117,7 +128,7 @@ namespace AT {
 		ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, viewport->Size.y));
 		ImGui::SetNextWindowViewport(viewport->ID);
 
-		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | 
+		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
 								ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -163,13 +174,13 @@ namespace AT {
 			strcpy(button_lable, "##");
 			strcat(button_lable, label);
 			if (ImGui::Button(button_lable, button_dims))
-				m_current_section = section;
+				s_current_section = section;
 			
 			ImVec2 button_min = ImGui::GetItemRectMin();
 			ImVec2 button_max = ImGui::GetItemRectMax();
 			ImVec2 button_center = ImVec2((button_min.x + button_max.x) * 0.5f, (button_min.y + button_max.y) * 0.5f);
 			
-			const ImVec4 button_color = (section == m_current_section) ? UI::get_action_color_00_default_ref() : ImVec4(1, 1, 1, 1);
+			const ImVec4 button_color = (section == s_current_section) ? UI::get_action_color_00_default_ref() : ImVec4(1, 1, 1, 1);
 			if (icon) {				// Draw icon centered horizontally, near top
 				ImVec2 icon_pos(button_center.x - icon_size * 0.5f, button_min.y + button_dims.y * 0.15f);
 				ImGui::SetCursorScreenPos(icon_pos);
@@ -202,32 +213,31 @@ namespace AT {
 		UI::shift_cursor_pos(padding_x, 10);
 		draw_sidebar_button("User", ui_section::user, m_user_icon);
 
+		if (s_current_section == ui_section::projects)
+			LOG(Trace, "Now")
+
 		ImGui::EndChild();
 	}
 
 
 	void dashboard::main_content_area() {
 		
+		LOG(Trace, "s_current_section: " << util::to_string(s_current_section));
+
 		ImGui::BeginChild("content", ImVec2(0, 0), false, ImGuiWindowFlags_AlwaysUseWindowPadding);
-		switch (m_current_section) {
+		switch (s_current_section) {
 			case ui_section::home:
 				
-				ImGui::PushFont(FONT_HEADER_0);
-				ImGui::Text("Welcome to Gluttony Engine");
-                ImGui::PopFont();
+				UI::text(FONT_HEADER_0, "Welcome to Gluttony Engine");
 				ImGui::Text("TODO: add sime intro text descriping the engine");
 
 				UI::shift_cursor_pos(0, 40);
-				ImGui::PushFont(FONT_HEADER_1);
-				ImGui::Text("Gluttony Engine News");
-                ImGui::PopFont();
+				UI::text(FONT_HEADER_1, "Gluttony Engine News");
 				news_panel(); // Add news panel here
 
 				UI::shift_cursor_pos(0, 40);
-				ImGui::PushFont(FONT_HEADER_1);
-				ImGui::Text("Recent Projects");
-                ImGui::PopFont();
-				projects_grid();
+				UI::text(FONT_HEADER_1, "Recent Projects");
+				// projects_grid();
 				break;
 				
 			case ui_section::projects: {
