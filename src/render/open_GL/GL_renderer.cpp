@@ -3,7 +3,7 @@
 #if defined(PLATFORM_LINUX)
     #include <GL/glew.h>
 #elif defined(PLATFORM_WINDOWS)
-    #include <Windows.h>
+    // #include <Windows.h>
     #define GLFW_EXPOSE_NATIVE_WIN32
     #include <GL/glew.h>
 #endif
@@ -30,6 +30,8 @@ namespace AT::render::open_GL {
     GL_renderer::GL_renderer(ref<window> window)
         : renderer(window) {
         
+        PROFILE_APPLICATION_FUNCTION();
+
         glfwMakeContextCurrent(m_window->get_window());
         
         glewExperimental = GL_TRUE;
@@ -51,9 +53,7 @@ namespace AT::render::open_GL {
         
         glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
-        // #ifdef DEBUG
-        //     glGenQueries(1, &m_total_render_time);
-        // #endif
+        LOG_INIT
     }
     
     GL_renderer::~GL_renderer() {
@@ -65,6 +65,42 @@ namespace AT::render::open_GL {
 
 
     void GL_renderer::draw_frame(float delta_time) {
+            
+        PROFILE_APPLICATION_FUNCTION();
+        
+        if (m_state != system_state::active)
+            return;
+
+        // execute_pending_commands();              // DISABLED: dont need custom shaders yet
+        
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        if (m_imgui_initalized) {
+
+            // ------ start new ImGui frame ------
+		    ImGui::SetCurrentContext(application::get().get_imgui_config_ref()->get_context_imgui());
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            application::get().get_dashboard()->draw(delta_time);
+            
+            ImGui::EndFrame();
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            
+            // update other platform windows
+            GLFWwindow* backup_current_context = glfwGetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backup_current_context);
+            glfwSwapBuffers(m_window->get_window());
+        }
+    }
+
+    
+    void GL_renderer::draw_startup_UI(float delta_time) {
             
         // execute_pending_commands();              // DISABLED: dont need custom shaders yet
         
@@ -79,7 +115,7 @@ namespace AT::render::open_GL {
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            application::get().get_dashboard().draw(delta_time);
+            application::get().get_dashboard()->draw_init_UI(delta_time);
             
             ImGui::EndFrame();
             ImGui::Render();

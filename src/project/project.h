@@ -8,13 +8,14 @@ namespace AT {
   
     struct project_data {
 
-		std::filesystem::path		project_path{};				// system path to the prject file for a gluttony project
-		// meta_data
-
-		std::string					display_name{};				// this name will be used in the launcher and editor
-		std::string					name{};						// this name is the name of the solution & export-folder
-		
 		UUID						ID;
+		std::string					name{};						// this name is the name of the solution & export-folder
+		std::string					display_name{};				// this name will be used in the launcher and editor
+		std::string					description{};				// A short description of this project
+		std::filesystem::path		project_path{};				// system path to the prject file for a gluttony project
+		system_time					last_modified{};			// Timestamp of when the project was last modified.
+		std::vector<std::string>	tags{};						// Tags or categories
+
 		version						engine_version{};			// version of the engine used, used by launcher, engine, editor, ...
 		version						project_version{};			// version of this project, mostly uesfull to the user for version managemant
 	
@@ -24,33 +25,8 @@ namespace AT {
 		std::filesystem::path		editor_start_world{};		// system path to the first world when developing the project
 
 		// Dependencies
-		//std::vector<std::string> engine_plugins;				// List of enabled or required plugins
-		//std::vector<std::string> external_libraries;			// List of external libraries
-
-		// User data
-		system_time					last_modified{};			// Timestamp of when the project was last modified.
-		std::string					description{};				// A short description of this project
-		std::vector<std::string>	tags{};						// Tags or categories
-
-		// project_data() { }
-
-		// project_data(const char* path, const char* display, const char* name, version eng_ver, version proj_ver, const char* build_path,
-		// 	const char* start_world, const char* editor_world, system_time mod_time, const char* desc, std::initializer_list<const char*> tag_list) {
-				
-		// 	project_path = path;
-		// 	display_name = display;
-		// 	name = name;
-		// 	engine_version = eng_ver;
-		// 	project_version = proj_ver;
-		// 	build_path = build_path;
-		// 	start_world = start_world;
-		// 	editor_start_world = editor_world;
-		// 	last_modified = mod_time;
-		// 	description = desc;
-		// 	for (const char* tag : tag_list) {
-		// 		tags.push_back(tag);
-		// 	}
-		// };
+		//std::unordered_set<std::string> engine_plugins;		// List of enabled or required plugins
+		//std::unordered_set<std::string> external_libraries;	// List of external libraries
 
 
 		static bool is_valid_project_path(const std::filesystem::path& project_file) { return (!project_file.empty() && std::filesystem::exists(project_file) && project_file.extension() == PROJECT_EXTENTION); }
@@ -63,16 +39,19 @@ namespace AT {
 					continue;
 
 				serializer::yaml(entry.path(), "project_data", option)
-					.entry(KEY_VALUE(display_name))
+					.entry(KEY_VALUE(ID))
 					.entry(KEY_VALUE(name))
-					//.entry(KEY_VALUE(data.ID))
+					.entry(KEY_VALUE(display_name))
+					.entry(KEY_VALUE(description))
+					.entry(KEY_VALUE(project_path))
+					.entry(KEY_VALUE(last_modified))
 					.entry(KEY_VALUE(engine_version))
 					.entry(KEY_VALUE(project_version))
 					.entry(KEY_VALUE(build_path))
 					.entry(KEY_VALUE(start_world))
 					.entry(KEY_VALUE(editor_start_world))
-					.entry(KEY_VALUE(last_modified))
-					.entry(KEY_VALUE(description))
+					// .unordered_set(KEY_VALUE(engine_plugins))
+					// .unordered_set(KEY_VALUE(external_libraries))
 					.vector("tags", tags, [&](serializer::yaml& inner, u64 x) {
 						inner.entry("tag", tags[x]);
 					});

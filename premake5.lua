@@ -1,5 +1,25 @@
 
-include "dependencies.lua"
+------------------ dependencies ------------------
+
+------------ path ------------
+vendor_path = {}
+vendor_path["glew"]				= "%{wks.location}/vendor/glew"
+vendor_path["glfw"]          	= "%{wks.location}/vendor/glfw"
+vendor_path["glm"]           	= "%{wks.location}/vendor/glm"
+vendor_path["ImGui"]         	= "%{wks.location}/vendor/imgui"
+vendor_path["implot"]         	= "%{wks.location}/vendor/implot"
+vendor_path["stb_image"]     	= "%{wks.location}/vendor/stb_image"
+vendor_path["catch2"]           = "%{wks.location}/vendor/Catch2"
+
+------------ include ------------ 
+IncludeDir = {}
+IncludeDir["glew"]              = "%{vendor_path.glew}/include"
+IncludeDir["glfw"]              = "%{vendor_path.glfw}"
+IncludeDir["glm"]               = "%{vendor_path.glm}"
+IncludeDir["ImGui"]             = "%{vendor_path.ImGui}"
+IncludeDir["implot"]            = "%{vendor_path.implot}"
+IncludeDir["stb_image"]         = "%{vendor_path.stb_image}"
+IncludeDir["catch2"]            = "%{vendor_path.catch2}/src"
 
 workspace "application"
 	platforms "x64"
@@ -25,6 +45,7 @@ workspace "application"
 		"OUTPUTS=\"" .. outputs .. "\"",
 	}
 
+    ---------- DISABLED FOR DEV ----------
 	if os.target() == "linux" then
 		print("---------- target platform is linux => manually compile GLFW ----------")
 		os.execute("cmake -S ./vendor/glfw -B ./vendor/glfw/build")								-- manuel compilation
@@ -116,8 +137,6 @@ group "core"
             
             externalincludedirs											-- treat VMA as system headers (prevent warnings)
             {
-                -- "/usr/include",
-                -- "/usr/include/c++/13",
                 "/usr/include/x86_64-linux-gnu/qt5", 				-- Base Qt include path
                 "/usr/include/x86_64-linux-gnu/qt5/QtCore",
                 "/usr/include/x86_64-linux-gnu/qt5/QtWidgets",
@@ -151,8 +170,8 @@ group "core"
 
             postbuildcommands
             {
-                '{COPYDIR} "%{wks.location}/assets" "%{wks.location}/bin/' .. outputs .. '/%{prj.name}"',
-                '{COPYDIR} "%{wks.location}/config" "%{wks.location}/bin/' .. outputs .. '/%{prj.name}"',
+                '{COPYDIR} -n "%{wks.location}/assets" "%{wks.location}/bin/' .. outputs .. '/%{prj.name}"',
+                '{COPYDIR} -n "%{wks.location}/config" "%{wks.location}/bin/' .. outputs .. '/%{prj.name}"',
             }
 
         filter "system:windows"
@@ -162,36 +181,56 @@ group "core"
                 "PLATFORM_WINDOWS",
                 "WIN32_LEAN_AND_MEAN",
                 "GLEW_STATIC",
+                "UNICODE",
+                "_UNICODE",
             }
 
             links
             {
+                "ImGui",
                 "glfw",
                 "glew32s",
                 "opengl32",
                 "gdi32",
                 "user32",
+                "comdlg32",
+                "shell32",
             }
 
             libdirs
             {
-                "%{wks.location}/vendor/glfw/lib-vc2022",  -- Path to GLFW libraries
-                "%{vendor_path.glew}/lib/Release/x64",
-            }
-
-
-            prebuildcommands 
-            {
-                "{COPY} \"%{vendor_path.glew}/bin/Release/x64/glew32.dll\" \"%{cfg.targetdir}\""
+                "%{wks.location}\\vendor\\glfw\\bin\\" .. outputs  .. "\\glfw",
+                "%{wks.location}\\vendor\\imgui\\bin\\" .. outputs  .. "\\imgui",
+                "%{vendor_path.glew}\\lib\\Release\\x64",
             }
             
             postbuildcommands
             {
-
-                '{COPYDIR} "%{wks.location}/assets" "%{wks.location}/bin/' .. outputs .. '/%{prj.name}/assets"',
-                '{COPYDIR} "%{wks.location}/config" "%{wks.location}/bin/' .. outputs .. '/%{prj.name}/config"',
-                '{COPYDIR} "%{wks.location}/vendor/glfw/bin/' .. outputs .. '/glfw" "%{wks.location}/bin/' .. outputs .. '/%{prj.name}"',       -- copy GLFW
+                '{COPYDIR} "%{wks.location}\\assets" "%{wks.location}\\bin\\' .. outputs .. '\\%{prj.name}\\assets"',
+                '{COPYDIR} "%{wks.location}\\config" "%{wks.location}\\bin\\' .. outputs .. '\\%{prj.name}\\config"',
             }
+
+        
+        filter { "system:windows", "action:gmake2" }  -- MinGW specific settings
+            links
+            {
+                "ImGui",
+                "glfw3",
+                "glew32",
+                "opengl32",
+                "gdi32",
+                "user32",
+                "comdlg32",
+                "shell32",
+            }
+
+            libdirs
+            {
+                "%{wks.location}\\vendor\\glfw\\build-mingw\\src",
+                "%{wks.location}\\vendor\\glfw\\bin\\' .. outputs .. '\\glfw",
+                "%{vendor_path.glew}\\lib\\Release\\Win32",
+            }
+
 
         filter "configurations:Debug"
             defines "DEBUG"
@@ -210,4 +249,165 @@ group "core"
             symbols "off"
             optimize "on"
 
+group ""
+
+
+group "tests"
+    project "tests"
+        kind "ConsoleApp"
+        language "C++"
+        cppdialect "C++20"
+        staticruntime "on"
+
+        targetdir ("%{wks.location}/bin/" .. outputs .. "/%{prj.name}")
+        objdir ("%{wks.location}/bin-int/" .. outputs .. "/%{prj.name}")
+
+        files
+        {
+            "testing/**.h",
+            "testing/**.cpp",
+
+            "src/util/timing/**.h",
+            "src/util/timing/**.cpp",
+            
+            "src/util/data_structures/data_types.h",
+            "src/util/data_structures/deletion_queue.h",
+            "src/util/data_structures/deletion_queue.cpp",
+            "src/util/data_structures/type_deletion_queue.h",
+            "src/util/data_structures/type_deletion_queue.cpp",
+
+            "src/util/math/random.cpp",
+            "src/util/math/math.cpp",
+            "src/util/io/io.cpp",
+            "src/util/io/config.cpp",
+            "src/util/io/logger.cpp",
+            "src/util/io/serializer_data.h",
+            "src/util/io/serializer_yaml.h",
+            "src/util/io/serializer_yaml.cpp",
+            "src/util/io/serializer_binary.h",
+            "src/util/io/serializer_binary.cpp",
+
+
+            "src/util/data_structures/string_manipulation.cpp",
+            "src/util/system.cpp",
+        }
+
+        includedirs
+        {
+            "src",
+            "testing",
+            "%{IncludeDir.catch2}",
+            "%{IncludeDir.glm}",
+            "%{vendor_path.catch2}/Build/generated-includes",
+
+            "%{IncludeDir.glew}",
+            "%{IncludeDir.glm}",
+            "%{IncludeDir.glfw}/include",
+            "%{IncludeDir.ImGui}",
+            "%{IncludeDir.ImGui}/backends/",
+            "%{IncludeDir.implot}",
+            "%{IncludeDir.stb_image}",
+        }
+
+        links
+        {
+            "ImGui",
+        }
+
+        libdirs 
+        {
+            "%{vendor_path.catch2}/Build/src",
+            "vendor/imgui/bin/" .. outputs .. "/imgui",
+        }
+
+        prebuildcommands
+        {
+            "cmake -S ./vendor/Catch2 -B ./vendor/Catch2/Build -DCMAKE_BUILD_TYPE=%{cfg.buildcfg} -DCATCH_INSTALL_DOCS=OFF -DCATCH_INSTALL_EXTRAS=OFF",
+            "cmake --build ./vendor/Catch2/Build --config %{cfg.buildcfg}"
+        }
+
+        filter "configurations:Debug"
+            links { "Catch2Maind", "Catch2d" }
+
+        filter "configurations:RelWithDebInfo"
+            links { "Catch2Main", "Catch2" }
+
+        filter "configurations:Release"
+            links { "Catch2Main", "Catch2" }
+
+        filter "files:vendor/implot/**.cpp"
+            flags { "NoPCH" }
+        
+        filter "files:vendor/imgui/**.cpp"
+            flags { "NoPCH" }
+        
+        filter "system:linux"
+            systemversion "latest"
+            defines "PLATFORM_LINUX"
+            links { 
+                "pthread",      -- Catch2 requires pthread on Linux
+                "Qt5Core",      -- Add Qt libraries if needed
+                "Qt5Widgets",
+                "Qt5Gui",
+            }
+
+            buildoptions
+            {
+                "-msse4.1",
+                "-fPIC",
+                "-Wall",
+                "-Wno-dangling-else"
+            }
+            
+            externalincludedirs											-- treat VMA as system headers (prevent warnings)
+            {
+                "/usr/include/x86_64-linux-gnu/qt5", 				-- Base Qt include path
+                "/usr/include/x86_64-linux-gnu/qt5/QtCore",
+                "/usr/include/x86_64-linux-gnu/qt5/QtWidgets",
+                "/usr/include/x86_64-linux-gnu/qt5/QtGui",
+            }
+
+        filter "system:windows"
+            systemversion "latest"
+            defines
+            {
+                "PLATFORM_WINDOWS",
+                "UNICODE",
+                "_UNICODE",
+            }
+
+            links
+            {
+                "ImGui",
+                "glfw",
+                "glew32s",
+                "opengl32",
+                "gdi32",
+                "user32",
+                "comdlg32",   -- For GetOpenFileNameW
+                "shell32",    -- For other Windows APIs
+            }
+
+            libdirs
+            {
+                "%{wks.location}/vendor/glfw/lib-vc2022",
+                "%{vendor_path.glew}/lib/Release/x64",
+            }
+
+        filter "configurations:Debug"
+            defines "DEBUG"
+            runtime "Debug"
+            symbols "on"
+
+        filter "configurations:RelWithDebInfo"
+            defines "RELEASE_WITH_DEBUG_INFO"
+            runtime "Release"
+            symbols "on"
+            optimize "on"
+
+        filter "configurations:Release"
+            defines "RELEASE"
+            runtime "Release"
+            symbols "off"
+            optimize "on"
 group ""

@@ -36,7 +36,44 @@
 	 */
 
 	 
-namespace AT {
+namespace AT::crash_handler {
+
+	static std::vector<std::function<void()>> s_user_functions;
+
+
+	u64 subscribe(std::function<void()> function) {
+		s_user_functions.push_back(function);
+		return s_user_functions.size() - 1;
+	}
+
+
+	void unsubscribe(u64 index) {
+		if (index < s_user_functions.size()) {
+			s_user_functions[index] = nullptr;
+		}
+	}
+
+
+	void execute_user_functions() {
+
+		LOG(Trace, "Executing ["  << s_user_functions.size() << "] registered functions");
+
+		// Execute in reverse order of registration
+		for (auto it = s_user_functions.rbegin(); it != s_user_functions.rend(); ++it) {
+			if (!*it)
+				continue;
+
+			try {
+				(*it)();
+			} catch (const std::exception& e) {
+				LOG(Error, "Exception in crash handler function: " << e.what());
+			} catch (...) {
+				LOG(Error, "Unknown exception in crash handler function");
+			}
+		}
+		LOG(Trace, "User functions have been executed");
+	}
+
 
 #if defined(PLATFORM_LINUX)
 
@@ -45,29 +82,30 @@ namespace AT {
 		SIGBUS, SIGPOLL, SIGPROF, SIGSYS, SIGTRAP, SIGVTALRM, SIGXCPU, SIGXFSZ,                                             // SUSv2 + POSIX.1-2001 signals
 		SIGIOT, SIGSTKFLT, SIGIO, SIGPWR,                                                                                   // Various other signals
 	};
-	std::vector<std::pair<int, struct sigaction>> g_old_sigactions;
+	std::vector<std::pair<int, struct sigaction>> g_old_sig_actions;
 
-	void detach_crash_handler() {
+	void detach() {
 
-		while(!g_old_sigactions.empty()) {
-			auto const& p = g_old_sigactions.back();
+		while(!g_old_sig_actions.empty()) {
+			auto const& p = g_old_sig_actions.back();
 			auto signal = p.first;
 			auto const& oldact = p.second;
 			if(0 != sigaction(signal, &oldact, nullptr))
 				throw std::system_error(errno, std::system_category());
-			g_old_sigactions.pop_back();
+			g_old_sig_actions.pop_back();
 		}
 	}
 
 	void signal_handler(const int signal) {
 
 		std::cout << "signal caught => terminating" << std::endl;
-		LOG(Fatal, "crash_hander caught signal [" << signal << "]. flushing remaining logs")
-		logger::shutdown();
-		// detach_crash_handler();
+		LOG(Fatal, "crash_handler caught signal [" << signal << "]")
+		execute_user_functions();
+		std::quick_exit(1);			// Directly terminate without clean shutdown
+		// detach();
 	}
 
-	void attach_crash_handler() {
+	void attach() {
 
 		struct sigaction act;
 		std::memset(&act, 0, sizeof(act));
@@ -75,7 +113,7 @@ namespace AT {
 		sigfillset(&act.sa_mask);
 		act.sa_flags = SA_RESETHAND;
 
-		// Some signals are synonyms for each other. Some are explictly specified
+		// Some signals are synonyms for each other. Some are explicitly specified
 		// as such, but others may just be implemented that way on specific
 		// systems. So we'll remove duplicate entries here before we loop through
 		// all the signal numbers.
@@ -83,7 +121,7 @@ namespace AT {
 		sort(begin(unique_signals), end(unique_signals));
 		unique_signals.erase(unique(begin(unique_signals), end(unique_signals)), end(unique_signals));
 		try {
-			g_old_sigactions.reserve(unique_signals.size());
+			g_old_sig_actions.reserve(unique_signals.size());
 			for(auto signal : unique_signals) {
 				struct sigaction oldact;
 				if(0 != sigaction(signal, nullptr, &oldact))
@@ -95,18 +133,18 @@ namespace AT {
 
 						throw std::system_error(errno, std::system_category());
 					}
-					g_old_sigactions.push_back({signal, oldact});
+					g_old_sig_actions.push_back({signal, oldact});
 				}
 			}
 		}
 		
 		catch (const std::exception& e) {
 			std::cout << "Exception caught [" << e.what() << "]" << std::endl;
-			detach_crash_handler();
+			detach();
 			throw;
 		} catch (...) {
 			std::cout << "Unknown exception caught." << std::endl;
-			detach_crash_handler();
+			detach();
 			throw;
 		}
 	}
@@ -118,7 +156,7 @@ namespace AT {
 
 	LONG WINAPI vectored_exception_handler(_EXCEPTION_POINTERS* ExceptionInfo) {
 		if (ExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_BREAKPOINT) {
-			logger::shutdown();  // Flush logs
+			execute_user_functions();
 			TerminateProcess(GetCurrentProcess(), 1);  // Skip CRT cleanup
 			return EXCEPTION_EXECUTE_HANDLER;
 		}
@@ -127,11 +165,11 @@ namespace AT {
 
 	LONG WINAPI exception_filter(_EXCEPTION_POINTERS* ExceptionInfo) {
 
-		logger::shutdown();
+		execute_user_functions();
 
 		// Save the old filter and detach the crash handler
 		LPTOP_LEVEL_EXCEPTION_FILTER old_filter = old_exception_filter;
-		detach_crash_handler();
+		detach();
 
 		if (old_filter)
 			return old_filter(ExceptionInfo);
@@ -139,14 +177,14 @@ namespace AT {
 			return EXCEPTION_CONTINUE_SEARCH;
 	}
 
-	void attach_crash_handler() {
+	void attach() {
 
 		assert(old_exception_filter == nullptr);
 		old_exception_filter = SetUnhandledExceptionFilter(&exception_filter);
 		g_vectoredExceptionHandle = AddVectoredExceptionHandler(1, vectored_exception_handler);				// 1 = call first
 	}
 
-	void detach_crash_handler() {
+	void detach() {
 
 		if (old_exception_filter) {
 			SetUnhandledExceptionFilter(old_exception_filter);

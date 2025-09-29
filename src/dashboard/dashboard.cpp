@@ -3,15 +3,18 @@
 
 #include <imgui/imgui.h>
 
-#include "util/ui/pannel_collection.h"
-#include "util/ui/imgui_markdown.h"
-#include "render/image.h"
 #include "events/event.h"
 #include "events/application_event.h"
 #include "events/mouse_event.h"
 #include "events/key_event.h"
-#include "application.h"
+#include "util/io/serializer_data.h"
+#include "util/io/serializer_yaml.h"
+#include "util/ui/panel_collection.h"
+#include "util/ui/imgui_markdown.h"
+#include "util/math/constance.h"
 #include "config/imgui_config.h"
+#include "application.h"
+#include "render/image.h"
 #include "project/project.h"
 
 #include "dashboard.h"
@@ -19,28 +22,17 @@
 
 namespace AT {
 
-	#define FONT_ITALLIC                application::get().get_imgui_config_ref()->get_font("italic")
-	#define FONT_BOLD                   application::get().get_imgui_config_ref()->get_font("bold")
-	#define FONT_HEADER_0               application::get().get_imgui_config_ref()->get_font("header_0")
-	#define FONT_HEADER_1               application::get().get_imgui_config_ref()->get_font("header_1")
-	#define FONT_HEADER_2               application::get().get_imgui_config_ref()->get_font("header_2")
-	#define FONT_HEADER_DEFAULT         application::get().get_imgui_config_ref()->get_font("header_default")
-	#define FONT_MONOSPACE_DEFAULT      application::get().get_imgui_config_ref()->get_font("monospace_regular")
-
-    enum class ui_section {
-        home = 0,
-        library,
-        projects,
-        settings,
-        user
-    };
-    static ui_section 					s_current_section = ui_section::home;
-    
+	#define FONT_ITALIC                 application::get().get_imgui_config_ref()->get_font(UI::font_type::italic)
+	#define FONT_BOLD                   application::get().get_imgui_config_ref()->get_font(UI::font_type::bold)
+	#define FONT_HEADER_0               application::get().get_imgui_config_ref()->get_font(UI::font_type::header_0)
+	#define FONT_HEADER_1               application::get().get_imgui_config_ref()->get_font(UI::font_type::header_1)
+	#define FONT_HEADER_2               application::get().get_imgui_config_ref()->get_font(UI::font_type::header_2)
+	#define FONT_MONOSPACE              application::get().get_imgui_config_ref()->get_font(UI::font_type::monospace_regular)
 
 
     dashboard::dashboard() {
 		
-		const std::filesystem::path icon_path = CONTENT_PATH / "icons";
+		const std::filesystem::path icon_path = ASSET_PATH / "icons";
 #define LOAD_ICON(name)			m_##name##_icon = create_ref<image>(icon_path / #name ".png", image_format::RGBA)
 		LOAD_ICON(logo);
 		LOAD_ICON(home);
@@ -69,14 +61,10 @@ namespace AT {
 #undef	LOAD_ICON
 
 		LOG(Trace, "INIT DASHBOARD")
-
-		// serialize(serializer::option::load_from_file);
 	}
     
     
     dashboard::~dashboard() {
-		
-		// serialize(serializer::option::save_to_file);
 		
 		m_logo_icon.reset();
 		m_home_icon.reset();
@@ -101,28 +89,44 @@ namespace AT {
 		m_transfrom_translation_icon.reset();
 		m_transfrom_rotation_icon.reset();
 		m_transfrom_scale_icon.reset();
-
 	}
 
 
-    // init will be called when every system is initalized
     bool dashboard::init() {
 
+        PROFILE_APPLICATION_FUNCTION();
+
+		create_dummy_projects();
+
+        LOG_INIT
         return true;
     }
 
-    // shutdown will be called bevor any system is deinitalized
+
     bool dashboard::shutdown() {
 
+        PROFILE_APPLICATION_FUNCTION();
+        LOG_SHUTDOWN
         return true;
     }
 
 
-    void dashboard::update(f32 delta_time) {}
+    void dashboard::on_crash() {
+        
+        LOG(Error, "Crash occurred")
+    }
+
+
+    void dashboard::update(f32 delta_time) {
+
+        PROFILE_APPLICATION_FUNCTION();
+    }
 
 
     void dashboard::draw(f32 delta_time) {
-		
+        
+        PROFILE_APPLICATION_FUNCTION();
+        
 		auto viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y));
 		ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, viewport->Size.y));
@@ -138,7 +142,7 @@ namespace AT {
 		ImGui::PopStyleVar(3);
 
 		sidebar(80.f);		// sidebar_width
-		UI::seperation_vertical();
+		UI::separation_vertical();
 
 		// Main content area
 		ImGui::SameLine();
@@ -155,13 +159,48 @@ namespace AT {
 
 
     void dashboard::on_event(event& event) {}
+    
+    // =============================================================================================================================
+    // UI helper
+    // =============================================================================================================================
+    
+    void dashboard::draw_init_UI(f32 delta_time) {
 
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        
+        // Set window to cover the entire viewport
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | 
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | 
+            ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+        
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        
+        ImGui::Begin("Initialization", nullptr, window_flags);
+        {
+            // Center content in the window
+            ImGui::SetCursorPos(ImVec2((viewport->WorkSize.x - 200) * 0.5f, (viewport->WorkSize.y - 100) * 0.5f));
 
+            ImGui::PushFont(application::get().get_imgui_config_ref()->get_font(UI::font_type::giant));
+            ImGui::Text("Initializing...");
+            ImGui::PopFont();
+
+            // Center the loading indicator
+            ImGui::SetCursorPosX((viewport->WorkSize.x - 60) * 0.5f);
+            UI::loading_indicator_circle("##loading_indicator", 30, 13, 5);
+        }
+        ImGui::End();
+        
+        ImGui::PopStyleVar(2);
+    }
 
 
 	void dashboard::sidebar(const f32 sidebar_width) {
 		
-		const float icon_size = 30.0f;
+		const f32 icon_size = 30.0f;
 		const f32 padding_x = (sidebar_width - icon_size - 10) / 2;
 		const f32 content_width = sidebar_width - (2 * padding_x);
 		const ImVec2 button_dims(content_width, content_width);
@@ -174,13 +213,13 @@ namespace AT {
 			strcpy(button_lable, "##");
 			strcat(button_lable, label);
 			if (ImGui::Button(button_lable, button_dims))
-				s_current_section = section;
+				m_current_section = section;
 			
 			ImVec2 button_min = ImGui::GetItemRectMin();
 			ImVec2 button_max = ImGui::GetItemRectMax();
 			ImVec2 button_center = ImVec2((button_min.x + button_max.x) * 0.5f, (button_min.y + button_max.y) * 0.5f);
 			
-			const ImVec4 button_color = (section == s_current_section) ? UI::get_action_color_00_default_ref() : ImVec4(1, 1, 1, 1);
+			const ImVec4 button_color = (section == m_current_section) ? UI::get_action_color_00_default_ref() : ImVec4(1, 1, 1, 1);
 			if (icon) {				// Draw icon centered horizontally, near top
 				ImVec2 icon_pos(button_center.x - icon_size * 0.5f, button_min.y + button_dims.y * 0.15f);
 				ImGui::SetCursorScreenPos(icon_pos);
@@ -205,16 +244,13 @@ namespace AT {
 		UI::shift_cursor_pos(padding_x, 10);
 		draw_sidebar_button("Library", ui_section::library, m_library_icon);
 
-		float available_height = ImGui::GetContentRegionAvail().y;
-		float bottom_buttons_height = (button_dims.y * 2) + (10 * 2); // 2 buttons + 2 spacings
+		f32 available_height = ImGui::GetContentRegionAvail().y;
+		f32 bottom_buttons_height = (button_dims.y * 2) + (10 * 2); // 2 buttons + 2 spacings
 		UI::shift_cursor_pos(padding_x, available_height - bottom_buttons_height);
 		draw_sidebar_button("Settings", ui_section::settings, m_settings_icon);
 		
 		UI::shift_cursor_pos(padding_x, 10);
 		draw_sidebar_button("User", ui_section::user, m_user_icon);
-
-		if (s_current_section == ui_section::projects)
-			LOG(Trace, "Now")
 
 		ImGui::EndChild();
 	}
@@ -222,10 +258,8 @@ namespace AT {
 
 	void dashboard::main_content_area() {
 		
-		LOG(Trace, "s_current_section: " << util::to_string(s_current_section));
-
 		ImGui::BeginChild("content", ImVec2(0, 0), false, ImGuiWindowFlags_AlwaysUseWindowPadding);
-		switch (s_current_section) {
+		switch (m_current_section) {
 			case ui_section::home:
 				
 				UI::text(FONT_HEADER_0, "Welcome to Gluttony Engine");
@@ -272,22 +306,24 @@ namespace AT {
 
 	
 	void dashboard::projects_grid() {
-
-		const float item_width = 200.0f;
-		const float item_height = 250.0f;
+	
+		const f32 available_width = ImGui::GetContentRegionAvail().x;
+		const f32 number_of_cards = std::floor(available_width / 200.f);
+		const f32 item_width = (available_width / number_of_cards) - 7.f;
+		const f32 item_height = 250.f;
 		const ImVec2 item_size(item_width, item_height);
-		const float padding = 20.0f;
-		const ImVec4 card_bg_color = ImVec4(0.12f, 0.12f, 0.12f, 1.0f);  // Darker gray
-		const ImVec4 card_hover_color = ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
-		const ImVec4 border_color = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+		const f32 padding = 0.f;
+		const ImVec4 card_bg_color = ImVec4(0.1f, 0.1f, 0.1f, 1.f);				// Darker gray
+		const ImVec4 card_hover_color = ImVec4(0.18f, 0.18f, 0.18f, 1.f);
+		const ImVec4 border_color = ImVec4(0.3f, 0.3f, 0.3f, 1.f);
 		
+		ImGui::PushFont(FONT_HEADER_0);
 		ImGui::Text("Recent Projects");
+		ImGui::PopFont();
 		ImGui::Separator();
 		
-		// ImGui::BeginChild("projects_scroll", ImVec2(0, 0), true);
-		
-		int items_per_row = ImGui::GetContentRegionAvail().x / (item_width + padding);
-		if (items_per_row < 1) items_per_row = 1;
+		int items_per_row = available_width / (item_width + padding);
+		if (items_per_row < 1)  items_per_row = 1;
 		
 		int i = 0;
 		for (const auto& project : get_user_projects_ref()) {
@@ -326,17 +362,31 @@ namespace AT {
 					ImGui::BeginTooltip();
 					
 					// Tooltip content
-					ImGui::TextColored(ImVec4(1, 1, 0, 1), "%s", project.display_name.c_str());
+					ImGui::PushFont(FONT_HEADER_1);
+					ImGui::TextColored(UI::get_main_color_ref(), "%s", project.display_name.c_str());
+					ImGui::PopFont();
 					ImGui::Separator();
 					
 					ImGui::Text("Path: %s", project.project_path.string().c_str());
-					ImGui::Text("Version: %s", util::to_string(project.project_version).c_str());
-					ImGui::Text("Engine: %s", util::to_string(project.engine_version).c_str());
+
+					{
+						std::ostringstream oss;
+						oss << (u16)project.project_version.major << '-' << (u16)project.project_version.minor << '-' << (u16)project.project_version.patch;
+						ImGui::Text("Version: %s", oss.str().c_str());
+					}
 					
-					std::ostringstream oss;
-					oss << (u16)project.last_modified.year << '-' << (u16)project.last_modified.month << '-' << (u16)project.last_modified.day
-						<< ' ' << (u16)project.last_modified.hour << ':' << (u16)project.last_modified.minute << ':' << (u16)project.last_modified.secund;
-					ImGui::Text("Last Modified: %s", oss.str().c_str());
+					{
+						std::ostringstream oss;
+						oss << (u16)project.engine_version.major << '-' << (u16)project.engine_version.minor << '-' << (u16)project.engine_version.patch;
+						ImGui::Text("Engine: %s", oss.str().c_str());
+					}
+
+					{
+						std::ostringstream oss;
+						oss << (u16)project.last_modified.year << '-' << (u16)project.last_modified.month << '-' << (u16)project.last_modified.day << ' ' 
+							<< (u16)project.last_modified.hour << ':' << (u16)project.last_modified.minute << ':' << (u16)project.last_modified.secund;
+						ImGui::Text("Last Modified: %s", oss.str().c_str());
+					}
 					
 					if (!project.tags.empty()) {						// Display tags
 						ImGui::Separator();
@@ -351,9 +401,11 @@ namespace AT {
 				case UI::mouse_interation::left_double_clicked: {
 
 					const std::string project_path = (project.project_path / project.name).replace_extension(".gltproj").generic_string();
+
+					// TODO: remove hard coded path 
 					const std::string command = "cd ~/workspace/gluttony/bin/Debug-linux-x86_64/ && ./gluttony_editor/gluttony_editor " + project_path;
 					LOG(Info, "command: " << command)
-					util::launch_detached_program(command);
+					// util::launch_detached_program(command);
 					application::get().close_application();
 
 				} break;
@@ -362,8 +414,7 @@ namespace AT {
 			}
 
 		}
-		
-		// ImGui::EndChild();
+
 	}
 
 
@@ -539,8 +590,8 @@ Early access to our new hybrid ray tracing renderer is now available!
 		// Panel styling
 		const ImVec4 card_bg_color = ImVec4(0.12f, 0.12f, 0.12f, 1.0f);
 		const ImVec4 border_color = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
-		const float card_width = 450.0f;
-		const float card_spacing = 20.0f;
+		const f32 card_width = 450.0f;
+		const f32 card_spacing = 20.0f;
 		
 		// Header
 		UI::big_text("Latest News & Updates");

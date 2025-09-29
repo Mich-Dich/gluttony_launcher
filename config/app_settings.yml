@@ -3,5 +3,10 @@ general_settings:
   display_name: Gluttony Launcher
   description: This launcher manages my game engine versions, plugins and user projects
   logo_path: assets/images/logo.png
-  project_version: 0 0 1
-  app_namespace: AT
+  project_version: 0 0 0
+  long_startup_process: false
+  clean_build_artifacts_on_build: false
+  icons:    # icons for file types after installation (not implemented yet)
+    application_template: assets/images/logo.png
+    atproj: assets/images/logo.png
+    atasset: assets/images/logo.png

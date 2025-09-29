@@ -4,6 +4,8 @@
 #include "UUID.h"
 
 
+namespace AT {
+
 //#define USE_EXPERIMENTAL_COLLISION_AVOIDANCE
 
 	static std::random_device s_RandomDevice;
@@ -12,7 +14,7 @@
 
 #ifdef USE_EXPERIMENTAL_COLLISION_AVOIDANCE
 	static std::unordered_set<u64> s_generated_UUIDs;		// To track generated UUIDs and avoid duplicates
-	FORCEINLINE static bool is_qnique(u64 uuid) { return s_generated_UUIDs.find(uuid) == s_generated_UUIDs.end(); }
+	FORCEINLINE static bool is_unique(u64 uuid) { return s_generated_UUIDs.find(uuid) == s_generated_UUIDs.end(); }
 #endif // USE_EXPERIMENTAL_COLLISION_AVOIDANCE
 
 	UUID::UUID() {
@@ -20,7 +22,7 @@
 
 		do {
 			m_UUID = s_UniformDistribution(s_Engine);
-		} while (!is_qnique(m_UUID));
+		} while (!is_unique(m_UUID));
 		s_generated_UUIDs.insert(m_UUID);
 #else
 		m_UUID = s_UniformDistribution(s_Engine);
@@ -36,3 +38,4 @@
 #endif // USE_EXPERIMENTAL_COLLISION_AVOIDANCE
 	}
 
+}
