@@ -27,6 +27,7 @@ namespace AT {
 	#define FONT_HEADER_0               application::get().get_imgui_config_ref()->get_font(UI::font_type::header_0)
 	#define FONT_HEADER_1               application::get().get_imgui_config_ref()->get_font(UI::font_type::header_1)
 	#define FONT_HEADER_2               application::get().get_imgui_config_ref()->get_font(UI::font_type::header_2)
+	#define FONT_GIANT					application::get().get_imgui_config_ref()->get_font(UI::font_type::giant)
 	#define FONT_MONOSPACE              application::get().get_imgui_config_ref()->get_font(UI::font_type::monospace_regular)
 
 
@@ -97,6 +98,10 @@ namespace AT {
         PROFILE_APPLICATION_FUNCTION();
 
 		create_dummy_projects();
+
+		// ------ DEV-ONLY ------
+		m_current_section = ui_section::user;
+		// ------ DEV-ONLY ------
 
         LOG_INIT
         return true;
@@ -286,18 +291,18 @@ namespace AT {
 			}
 				
 			case ui_section::library:
-				ImGui::Text("Asset Library");
+				UI::text(FONT_GIANT, "Asset Library");
 				// TODO: Library content
 				break;
 				
 			case ui_section::settings:
-				ImGui::Text("Settings");
+				UI::text(FONT_GIANT, "Settings");
 				settings_panel();
 				break;
 				
 			case ui_section::user:
-				ImGui::Text("User Profile");
-				// TODO: User info
+				UI::text(FONT_GIANT, "User Profile");
+            	user_profile_panel();
 				break;
 		}
 		
@@ -663,6 +668,124 @@ Early access to our new hybrid ray tracing renderer is now available!
 			}
 			ImGui::EndMenuBar();
 		}
+	}
+
+
+	void dashboard::user_profile_panel() {
+
+		ImGui::Columns(2, "ProfileColumns", false);								// Main profile content in two columns
+		
+		// Left column - Avatar and basic info
+		{
+			ImGui::BeginChild("ProfileLeft", ImVec2(0, 0), true);
+		
+			// Avatar/Profile picture
+			ImGui::SetCursorPosX((ImGui::GetContentRegionAvail().x - 120) * 0.5f);
+			ImGui::Image(m_user_icon->get(), ImVec2(120, 120), ImVec2(0, 0), ImVec2(1, 1), UI::get_main_color_ref());
+			
+			// User name with professional styling
+			ImGui::Spacing();
+			ImGui::PushFont(FONT_HEADER_1);
+			ImGui::SetCursorPosX((ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("Alex Thompson").x) * 0.5f);
+			ImGui::Text("Alex Thompson");
+			ImGui::PopFont();
+			
+			// Role/title
+			ImGui::SetCursorPosX((ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("Senior Technical Artist").x) * 0.5f);
+			ImGui::TextColored(UI::get_action_color_00_active_ref(), "Senior Technical Artist");
+			
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+			
+			static UI::edit_text_field team{"Rendering"};
+
+			// Quick stats
+			ImGui::PushStyleColor(ImGuiCol_Text, UI::get_action_color_00_active_ref());
+			UI::text(FONT_HEADER_1, "Quick Stats");
+    		ImGui::PopStyleColor();
+			UI::begin_table("quick_stats", false, {0.f, 0.f}, 0.f, true, .25f);
+			UI::table_row_text("Projects:", "%d", get_user_projects_ref().size());
+			UI::table_row_editable_text("Team:", team);
+			UI::end_table();
+
+			ImGui::Text("Assets Created: 347");
+			ImGui::Text("Member Since: 2022");
+			
+			ImGui::Spacing();
+			
+			// Status indicator
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.4f, 1.0f), "● Available");
+			
+			ImGui::EndChild();
+			
+			// Action buttons
+			ImGui::Spacing();
+			if (ImGui::Button("Edit Profile", ImVec2(-1, 35))) {
+				// TODO: Implement profile editing
+			}
+			
+			ImGui::Spacing();
+			if (ImGui::Button("Change Avatar", ImVec2(-1, 35))) {
+				// TODO: Implement avatar change
+			}
+		}
+		
+		ImGui::NextColumn();
+		
+		// Right column - Detailed information
+		{
+			ImGui::BeginChild("ProfileRight", ImVec2(0, 0), true);
+			
+			// Contact Information
+			ImGui::PushStyleColor(ImGuiCol_Text, UI::get_action_color_00_active_ref());
+			UI::text(FONT_HEADER_1, "Contact Information");
+    		ImGui::PopStyleColor();
+			
+			static UI::edit_text_field email{"alex.thompson@company.com"};
+			static UI::edit_text_field phone{"+1 (555) 123-4567"};
+			static UI::edit_text_field location{"San Francisco, CA"};
+			static UI::edit_text_field department{"Rendering & Graphics"};
+			static UI::edit_text_field specialization{"Real-time Rendering, Shader Development"};
+			static UI::editable_bullet_list current_projects{{"Vulkan Renderer Migration", "Global Illumination System", "Material Editor v2.0"}};
+			static UI::editable_bullet_list skills{{"Vulkan/D3D12", "C++/HLSL", "Real-time GI", "Tool Development", "Team Leadership"}};
+
+			UI::begin_table("personal_information", false, {0.f, 0.f}, 0.f, true, .25f);
+			UI::table_row_editable_text("Email:", email);
+			UI::table_row_editable_text("Phone:", phone);
+			UI::table_row_editable_text("Location:", location);
+			UI::end_table();
+			
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+			
+			ImGui::PushStyleColor(ImGuiCol_Text, UI::get_action_color_00_active_ref());
+			UI::text(FONT_HEADER_1, "Professional Details");
+    		ImGui::PopStyleColor();
+			UI::begin_table("personal_information");
+			UI::table_row_editable_text("Department:", department);
+			UI::table_row_editable_text("Specialization:", specialization);
+			UI::table_row_bullet_editable("Current Projects:", current_projects);
+			UI::end_table();
+			
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+			
+			// Skills & Expertise
+			ImGui::PushStyleColor(ImGuiCol_Text, UI::get_action_color_00_active_ref());
+			UI::text(FONT_HEADER_1, "Skills & Expertise");
+    		ImGui::PopStyleColor();
+			ImGui::Spacing();
+			
+			UI::begin_table("personal_information");
+			UI::table_row_bullet_editable("Technical Skills:", skills);
+			UI::end_table();
+			
+			ImGui::EndChild();
+		}
+		
 	}
 
 }

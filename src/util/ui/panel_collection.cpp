@@ -234,11 +234,11 @@ namespace AT::UI {
 		// ImVec2 expected_size = ImVec2(20, 50);							// TODO: Adjust based on content
 
 		// if (file_currupted) 
-		// 	switch (loc_file_curruption_source) {					// sprocimate size bycorruption type
+		// 	switch (loc_file_curruption_source) {
 		// 		default:
 		// 		case file_curruption_source::unknown:				expected_size = ImVec2(280, 250); break;	// should display everything to help user
 		// 		case file_curruption_source::header_incorrect:		expected_size = ImVec2(280, 250); break;	// should display header
-		// 		case file_curruption_source::empty_file:			expected_size = ImVec2(180, 150); break;	// dosnt need to display anything other than size
+		// 		case file_curruption_source::empty_file:			expected_size = ImVec2(180, 150); break;	// doesn't need to display anything other than size
 		// 	}
 		
 		// popup_pos = mouse_pos;
@@ -258,20 +258,20 @@ namespace AT::UI {
 	// BUTTON
 	// ============================================================================================================
 
-	bool gray_button(const char* lable, const ImVec2& size) {
+	bool gray_button(const char* label, const ImVec2& size) {
 
 		ImGui::PushStyleColor(ImGuiCol_Button, UI::get_default_gray_ref());
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, UI::get_action_color_gray_hover_ref());
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, UI::get_action_color_gray_active_ref());
 
-		const bool result = ImGui::Button(lable, size);
+		const bool result = ImGui::Button(label, size);
 
 		ImGui::PopStyleColor(3);
 		return result;
 	}
 
 
-	bool toggle_button(const char* lable, bool& bool_var, const ImVec2& size) {
+	bool toggle_button(const char* label, bool& bool_var, const ImVec2& size) {
 
 		// show weaker color if toggle_bool is false
 		if (!bool_var) {
@@ -465,7 +465,7 @@ namespace AT::UI {
 				if (string_size.x > wrap_width) {
 					// bool done = false;
 	
-					// If next line would exceed max_lines, ellipsize THIS line instead of breaking:
+					// If next line would exceed max_lines, lenipsize THIS line instead of breaking:
 					if (max_lines > 0 && line_count + 1 == max_lines) {
 						size_t end = write_pos;															// find end-of-line = write_pos
 						while (end > line_start && ImGui::CalcTextSize(string.c_str()+line_start, string.c_str()+end).x + ImGui::CalcTextSize("...").x > wrap_width)			// back up so we can fit "..."
@@ -524,7 +524,7 @@ namespace AT::UI {
 	}
 
 	// ================================================================================================================================================================================================
-	// ANCI escape code parsing
+	// ansi escape code parsing
 	// ================================================================================================================================================================================================
 
 	inline ImVec4 get_background_8_color(int index) {
@@ -641,25 +641,25 @@ namespace AT::UI {
 
 		while (current_position < text.length()) {
 
-			size_t anci_start = text.find('\033', current_position);
+			size_t ansi_start = text.find('\033', current_position);
 
-			if (anci_start >= text.length() || anci_start == std::string::npos) {																// No more ANSI codes, print the remaining text
+			if (ansi_start >= text.length() || ansi_start == std::string::npos) {																// No more ANSI codes, print the remaining text
 				render_text_segment(text.data() + current_position, static_cast<int>(text.length() - current_position), color, bg_color);
 				break;
 			}
 
-			if (anci_start > current_position)
-				render_text_segment(text.data() + current_position, static_cast<int>(anci_start - current_position), color, bg_color);
+			if (ansi_start > current_position)
+				render_text_segment(text.data() + current_position, static_cast<int>(ansi_start - current_position), color, bg_color);
 
-			current_position = anci_start;
-			size_t anci_end = text.find('m', anci_start);
-			VALIDATE(anci_end != std::string::npos, break, "", "Detected ANCS escape code is not closed [" << text << "] at pos [" << anci_start << "]");
+			current_position = ansi_start;
+			size_t ansi_end = text.find('m', ansi_start);
+			VALIDATE(ansi_end != std::string::npos, break, "", "Detected ANSI escape code is not closed [" << text << "] at pos [" << ansi_start << "]");
 
-			if (anci_start + 1 >= text.length() || text[anci_start + 1] != '[')                                                                 // Check if ANSI code starts with '['
-				current_position = anci_start + 1;
+			if (ansi_start + 1 >= text.length() || text[ansi_start + 1] != '[')                                                                 // Check if ANSI code starts with '['
+				current_position = ansi_start + 1;
 
 			// Parse ANSI code
-			const std::string_view code = text.substr(anci_start, anci_end - anci_start);
+			const std::string_view code = text.substr(ansi_start, ansi_end - ansi_start);
 			if (code.size() > 2 && code[0] == '\033' && code[1] == '[') {
 				std::vector<int> params;
 				size_t pos = 2;
@@ -740,7 +740,7 @@ namespace AT::UI {
 				}
 			}
 
-			current_position = anci_end + 1;
+			current_position = ansi_end + 1;
 		}
 
 		ImGui::NewLine();
@@ -777,22 +777,22 @@ namespace AT::UI {
 	}
 
 
-	void progressbar_with_text(const char* lable, const char* progress_bar_text, f32 percent, f32 lable_size, f32 progressbar_size_x, f32 progressbar_size_y) {
+	void progressbar_with_text(const char* label, const char* progress_bar_text, f32 percent, f32 label_size, f32 progressbar_size_x, f32 progressbar_size_y) {
 
 		// PROFILE_FUNCTION();
 
 		ImVec2 curser_pos;
 		ImVec2 progressbar_size;
 		ImVec2 text_size;
-		f32 loc_lable_size;
+		f32 loc_label_size;
 
 		ImGuiStyle* style = &ImGui::GetStyle();
 		curser_pos = ImGui::GetCursorPos();
 
-		loc_lable_size = ImGui::CalcTextSize(lable).x;
-		loc_lable_size = std::max<f32>(loc_lable_size, lable_size);
-		ImGui::Text("%s", lable);
-		ImGui::SetCursorPos({ curser_pos.x + loc_lable_size, curser_pos.y });
+		loc_label_size = ImGui::CalcTextSize(label).x;
+		loc_label_size = std::max<f32>(loc_label_size, label_size);
+		ImGui::Text("%s", label);
+		ImGui::SetCursorPos({ curser_pos.x + loc_label_size, curser_pos.y });
 
 		text_size = ImGui::CalcTextSize(progress_bar_text);
 		progressbar_size = text_size;
@@ -897,13 +897,13 @@ namespace AT::UI {
 	// MISC
 	// ============================================================================================================
 
-	bool search_input(const char* lable, std::string& search_text) {
+	bool search_input(const char* label, std::string& search_text) {
 
 		std::string buffer = search_text;
 		buffer.resize(256);
 
 		ImGui::SetNextItemAllowOverlap();
-		if (ImGui::InputTextWithHint(lable, "Search", buffer.data(), 255, ImGuiInputTextFlags_EnterReturnsTrue)) {
+		if (ImGui::InputTextWithHint(label, "Search", buffer.data(), 255, ImGuiInputTextFlags_EnterReturnsTrue)) {
 
 			buffer.resize(strlen(buffer.c_str()));
 			search_text = buffer;
@@ -915,7 +915,7 @@ namespace AT::UI {
 			ImGui::SameLine();
 			UI::shift_cursor_pos(-ImGui::CalcTextSize(" X ").x - (ImGui::GetStyle().ItemSpacing.x * 3), 0);
 
-			std::string button_text = " X ##Clear_search_query__" + std::string(lable);
+			std::string button_text = " X ##Clear_search_query__" + std::string(label);
 			if (ImGui::Button(button_text.c_str())) {
 
 				LOG(Trace, "Trigger clear button")
@@ -1045,13 +1045,13 @@ namespace AT::UI {
 	}
 
 	// ============================================================================================================
-	// COLLABSING HEADER
+	// COLLAPSING HEADER
 	// ============================================================================================================
 
-	bool begin_collapsing_header_section(const char* lable) {
+	bool begin_collapsing_header_section(const char* label) {
 
 		ImGui::Indent();
-		bool buffer = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_DefaultOpen);
+		bool buffer = ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen);
 
 		if (!buffer)
 			ImGui::Unindent();
@@ -1068,13 +1068,13 @@ namespace AT::UI {
 	// TABLE
 	// ============================================================================================================
 
-	bool begin_table(std::string_view lable, bool display_name, ImVec2 size, f32 inner_width, bool set_columns_width, f32 columns_width_percentage) {
+	bool begin_table(std::string_view label, bool display_name, ImVec2 size, f32 inner_width, bool set_columns_width, f32 columns_width_percentage) {
 
 		if (display_name)
-			ImGui::Text("%s:", lable.data());
+			ImGui::Text("%s:", label.data());
 
 		ImGuiTableFlags flags = ImGuiTableFlags_Resizable;
-		if (ImGui::BeginTable(lable.data(), 2, flags, size, inner_width)) {
+		if (ImGui::BeginTable(label.data(), 2, flags, size, inner_width)) {
 
 			// setup table and columns
 			if (size.x > 0.0f && set_columns_width) {
@@ -1170,13 +1170,13 @@ namespace AT::UI {
 	}
 
 
-	void table_row(std::function<void()> first_colum, std::function<void()> second_colum) {
+	void table_row(std::function<void()> first_column, std::function<void()> second_column) {
 
 		ImGui::TableNextRow();
 		ImGui::TableSetColumnIndex(0);
-		first_colum();
+		first_column();
 		ImGui::TableSetColumnIndex(1);
-		second_colum();
+		second_column();
 	}
 
 
@@ -1230,6 +1230,148 @@ namespace AT::UI {
 		va_start(args, format);
 		ImGui::TextV(format, args);
 		va_end(args);
+	}
+
+
+	void table_row_editable_text(std::string_view label, edit_text_field& static_field_data) {
+
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+		ImGui::Text("%s", label.data());
+		ImGui::TableSetColumnIndex(1);
+
+		if (static_field_data.editing) {
+			
+			std::string input_id = "##editable_" + std::string(label);			// Create a unique ID for the input field
+			static char buffer[256];
+			strncpy(buffer, static_field_data.string.c_str(), sizeof(buffer) - 1);
+			buffer[sizeof(buffer) - 1] = '\0';
+
+			ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
+			
+			if (ImGui::InputText(input_id.c_str(), buffer, sizeof(buffer), static_field_data.flags | ImGuiInputTextFlags_EnterReturnsTrue)) {
+				static_field_data.string = buffer;
+				static_field_data.editing = false;
+			}
+			
+			if (ImGui::IsItemActivated())										// Auto-focus and select all text when starting to edit
+				ImGui::SetKeyboardFocusHere(-1);
+			
+			if (ImGui::IsKeyPressed(ImGuiKey_Escape))							// Handle escape key to cancel editing
+				static_field_data.editing = false;
+			
+			if (!ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))			// Lose focus when clicking away
+				static_field_data.editing = false;
+
+		} else {
+
+			ImGui::Text("%s", static_field_data.string.c_str());
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+				static_field_data.editing = true;
+		}
+	}
+
+
+	void table_row_bullet_editable(std::string_view label, editable_bullet_list& list_data) {
+		
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+		ImGui::Text("%s", label.data());
+		ImGui::TableSetColumnIndex(1);
+		list_data.sync_editing_states();
+		
+		ImGui::BeginChild(("##bullet_list_" + std::string(label)).c_str(), 
+			ImVec2(0, list_data.items.size() * 30 + 40), true);
+		
+		for (size_t i = 0; i < list_data.items.size(); ++i) {
+			ImGui::PushID(static_cast<int>(i));
+			
+			// Create a selectable that covers the entire line for hover detection
+			bool is_selected = false;
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, {0.f, 0.f, 0.f, 0.f});
+			ImGui::PushStyleColor(ImGuiCol_HeaderActive, {0.f, 0.f, 0.f, 0.f});
+			ImGui::Selectable("##line_selector", &is_selected, ImGuiSelectableFlags_AllowOverlap, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetTextLineHeight()));
+			ImGui::PopStyleColor(2);
+			bool is_line_hovered = ImGui::IsItemHovered();
+			
+			// Now draw the actual content on top
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().ItemSpacing.y);
+			
+			ImGui::Bullet();
+			ImGui::SameLine();
+			
+			if (list_data.editing_states[i]) {
+
+				std::string input_id = "##editable_bullet_" + std::to_string(i);
+				static char buffer[256];
+				strncpy(buffer, list_data.items[i].c_str(), sizeof(buffer) - 1);
+				buffer[sizeof(buffer) - 1] = '\0';
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60);
+				bool committed = ImGui::InputText(input_id.c_str(), buffer, sizeof(buffer), list_data.flags | ImGuiInputTextFlags_EnterReturnsTrue);
+				
+				if (ImGui::IsItemActivated())
+					ImGui::SetKeyboardFocusHere(-1);
+				
+				if (committed || (!ImGui::IsItemActive() && ImGui::IsItemDeactivatedAfterEdit())) {
+					list_data.items[i] = buffer;
+					list_data.editing_states[i] = false;
+				}
+				
+				if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+					list_data.editing_states[i] = false;
+				
+				ImGui::SameLine();
+				if (ImGui::Button("OK")) {
+					list_data.items[i] = buffer;
+					list_data.editing_states[i] = false;
+				}
+				
+				ImGui::SameLine();
+				if (ImGui::Button("X")) {
+					list_data.items.erase(list_data.items.begin() + i);
+					list_data.editing_states.erase(list_data.editing_states.begin() + i);
+					ImGui::PopID();
+					break;
+				}
+
+			} else {
+
+				if (is_line_hovered)																				// Use hover color if the line is hovered
+					ImGui::TextColored(UI::get_action_color_00_hover_ref(), "%s", list_data.items[i].c_str());
+				else
+					ImGui::Text("%s", list_data.items[i].c_str());
+				
+				if (is_line_hovered && ImGui::IsMouseDoubleClicked(0)) {
+
+					for (size_t x = 0; x < list_data.editing_states.size(); x++)									// Force only one active
+						list_data.editing_states[x] = false;
+
+					list_data.editing_states[i] = true;
+				}
+				
+				// Show delete button when line is hovered
+				if (is_line_hovered) {
+					ImGui::SameLine();
+					float button_x = ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 20;
+					ImGui::SetCursorPosX(button_x);
+					if (ImGui::Button("X")) {
+						list_data.items.erase(list_data.items.begin() + i);
+						list_data.editing_states.erase(list_data.editing_states.begin() + i);
+						ImGui::PopID();
+						break;
+					}
+				}
+			}
+			
+			ImGui::PopID();
+		}
+		
+		if (ImGui::Button("+ Add", ImVec2(-1, 25))) {
+			list_data.items.push_back("New Entry");
+			list_data.editing_states.push_back(true);
+		}
+		
+		ImGui::EndChild();
 	}
 
 

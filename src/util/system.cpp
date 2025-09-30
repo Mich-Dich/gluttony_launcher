@@ -269,7 +269,7 @@ namespace AT::util {
 
         PROFILE_APPLICATION_FUNCTION();
 
-        static const f32 estimated_deviation = 2.0f;
+        static const f32 estimated_deviation = .5f;
         auto loc_duration_in_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<f32>(duration_in_milliseconds)).count();
         auto target_time = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(static_cast<int>(loc_duration_in_milliseconds));
 
@@ -278,14 +278,8 @@ namespace AT::util {
         // Busy wait for the remaining time
         {
             PROFILE_APPLICATION_SCOPE("busy wait");
-
-            while (std::chrono::high_resolution_clock::now() < target_time)
-                ;
-            
+            while (std::chrono::high_resolution_clock::now() < target_time) ;
         }
-
-        //auto actual_sleep_time = std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::high_resolution_clock::now() - target_time + std::chrono::milliseconds(static_cast<int>(duration_in_milliseconds)) ).count();
-        //LOG(Debug, "left over time: " << actual_sleep_time << " ms");
     }
 
 

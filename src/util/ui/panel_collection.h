@@ -275,9 +275,8 @@ namespace AT::UI {
 	// @return true if the value was changed by the slider, false otherwise.
 	bool table_row_slider_int(std::string_view label, int& value, int min_value = 0, int max_value = 1, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None);
 	
-	
+	//
 	bool table_row_slider_color(std::string_view label, glm::vec4& value, f32 min_value = 0.f, f32 max_value = 1.f, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None);
-
 
 	// @brief Renders a table row with two columns, each containing custom content.
 	// @param [first_column] A function to render the content of the first column.
@@ -295,6 +294,30 @@ namespace AT::UI {
 	// @param [format] The format string for the text.
 	// @param [...] Variable arguments for the format string.
 	void table_row_text(std::string_view label, const char* format, ...);
+
+	struct edit_text_field {
+		std::string 		string = "";
+		ImGuiInputTextFlags flags = ImGuiInputTextFlags_None;
+		bool 				editing = false;
+	};
+
+	//
+	void table_row_editable_text(std::string_view label, edit_text_field& static_field_data);
+
+	struct editable_bullet_list {
+		std::vector<std::string> items;
+		ImGuiInputTextFlags flags = ImGuiInputTextFlags_None;
+		std::vector<bool> editing_states;
+		
+		// Helper to ensure editing_states is always in sync
+		void sync_editing_states() {
+			if (editing_states.size() != items.size()) {
+				editing_states.resize(items.size(), false);
+			}
+		}
+	};
+
+	void table_row_bullet_editable(std::string_view label, editable_bullet_list& list_data);
 
 	// @brief Renders a table row with a label and a checkbox.
 	// @param [label] The label for the row.

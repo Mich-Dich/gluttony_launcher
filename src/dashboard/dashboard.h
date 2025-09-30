@@ -91,13 +91,14 @@ namespace AT {
 
     private:
 
+        void main_content_area();
+        void sidebar(const f32 sidebar_width);
         void main_menu_bar();
         void settings_panel();
         void news_panel();
         void project_control();
         void projects_grid();
-        void main_content_area();
-        void sidebar(const f32 sidebar_width);
+        void user_profile_panel();
 		
 		enum class ui_section {
 			home = 0,

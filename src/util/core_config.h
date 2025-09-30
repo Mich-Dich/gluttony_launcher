@@ -9,9 +9,9 @@
 
 
 // collect timing-data from every major function?
-#define PROFILE								    1	// general
+#define PROFILE								    0	// general
 #define PROFILE_APPLICATION                     1
-#define PROFILE_RENDERER                        0
+#define PROFILE_RENDERER                        1
 
 // log assert and validation behaviour?
 // NOTE - expr in assert/validation will still be executed
